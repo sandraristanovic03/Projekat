@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Raster sloj sa GeoServera (koristi pravi URL i naziv sloja)
   var rasterLayer = L.tileLayer.wms('http://localhost:8080/geoserver/knjizara_ws/wms', {
     layers: 'knjizara_ws:knjizara_rasterr',
-    format: 'image/png',      // OBAVEZNO format image/png
+    format: 'image/png',      
     transparent: true,
     attribution: 'GeoServer raster sloj'
   }).addTo(map);
@@ -89,3 +89,4 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('searchButton').onclick = search;
 });
+

@@ -15,10 +15,10 @@ document.addEventListener('DOMContentLoaded', function () {
     attribution: 'GeoServer raster sloj'
   }).addTo(map);
 
-  // WMS sloj za pretragu
   var wmsLayer = null;
+  var marker = null;
 
-  // Funkcija za prikaz informacija ispod mape
+  // Funkcija za prikaz informacija ispod mape sa linkom na više informacija
   function prikaziInfo(geojsonFeature) {
     var infoContainer = document.getElementById('infoContainer');
 
@@ -29,15 +29,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var props = geojsonFeature.properties;
 
+    // Mapiranje imena knjižara na fajlove
+    var stranice = {
+      "Vulkan": "vulkan.html",
+      "Laguna": "laguna.html",
+      "Sunce": "sunce.html",
+      "Detalj": "detalj.html"
+    };
+
+    var fajl = stranice[props.name] || "#";
+
     infoContainer.innerHTML = `
-      <h3>${props.naziv}</h3>
-      <p><strong>Adresa:</strong> ${props.adresa}</p>
-      <p><strong>Telefon:</strong> ${props.telefon}</p>
-      <p><strong>Radno vreme:</strong> ${props.radno_vreme}</p>
+      <h3>${props.name}</h3>
+      <p><strong>Adresa:</strong> ${props.address}</p>
+      <p><strong>Telefon:</strong> ${props.phone}</p>
+      <p><strong>Radno vreme:</strong> ${props.working_hours}</p>
+      <p><a href="${fajl}" target="_blank" style="color:blue; text-decoration:underline;">Više informacija</a></p>
     `;
   }
 
-  // Funkcija za slanje WFS zahteva i dobijanje GeoJSON podataka
+  // Funkcija za pretragu i prikaz rezultata
   function search() {
     var searchTerm = document.getElementById('searchInput').value.trim();
 
@@ -46,8 +57,9 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Prikaži WMS sloj 
-    var cql = "naziv ILIKE '%" + searchTerm + "%'";
+    var cql = "name ILIKE '%" + searchTerm + "%'";
+
+    // Ukloni prethodni WMS sloj ako postoji
     if (wmsLayer) {
       map.removeLayer(wmsLayer);
     }
@@ -59,7 +71,6 @@ document.addEventListener('DOMContentLoaded', function () {
       cql_filter: cql
     }).addTo(map);
 
-    // WFS GeoJSON zahtev
     var wfsUrl = `http://localhost:8080/geoserver/knjizara_ws/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=knjizara_ws:knjizara&outputFormat=application/json&CQL_FILTER=${encodeURIComponent(cql)}`;
 
     fetch(wfsUrl)
@@ -69,24 +80,40 @@ document.addEventListener('DOMContentLoaded', function () {
           let feature = data.features[0];
           prikaziInfo(feature);
 
-          // Zumiranje na lokaciju
           var coords = feature.geometry.coordinates;
           var latlng = [coords[1], coords[0]];
           map.setView(latlng, 17);
 
-          // Marker na lokaciji
-          L.marker(latlng).addTo(map);
+          // Ako već postoji marker, ukloni ga
+          if (marker) {
+            map.removeLayer(marker);
+          }
+          // Dodaj marker na lokaciju knjižare
+          marker = L.marker(latlng, {icon: L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+          })}).addTo(map);
         } else {
           prikaziInfo(null);
+          if (marker) {
+            map.removeLayer(marker);
+          }
         }
       })
       .catch(err => {
         console.error('Greška pri WFS zahtevu:', err);
         prikaziInfo(null);
+        if (marker) {
+          map.removeLayer(marker);
+        }
       });
   }
 
-  // Event listener za dugme
+  // Event listener za dugme pretrage
   document.getElementById('searchButton').onclick = search;
 });
+
+
 
